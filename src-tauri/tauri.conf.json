@@ -1,0 +1,1 @@
+{"productName":"Clodx","version":"0.1.0","identifier":"com.clodx.desktop","build":{"frontendDist":"../dist","devUrl":"http://localhost:5173"},"app":{"windows":[{"label":"main","title":"Clodx","width":360,"height":480,"resizable":false,"alwaysOnTop":true,"skipTaskbar":true}]},"bundle":{"active":true,"targets":"all"}}
