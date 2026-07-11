@@ -18,8 +18,9 @@ jobs:
         include:
           - name: macOS
             os: macos-15-intel
-            bundles: dmg
+            bundles: app
             artifact: clodx-macos-x64
+            archive_dmg: true
           - name: macOS Apple Silicon
             os: macos-14
             bundles: app
@@ -40,12 +41,24 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run tauri build -- --bundles ${{ matrix.bundles }}
+      - name: Repair and verify macOS app signature
+        if: matrix.archive_app || matrix.archive_dmg
+        run: |
+          codesign --force --deep --sign - src-tauri/target/release/bundle/macos/Clodx.app
+          codesign --verify --deep --strict --verbose=2 src-tauri/target/release/bundle/macos/Clodx.app
       - name: Archive Apple Silicon app
         if: matrix.archive_app
         run: >-
           ditto -c -k --sequesterRsrc --keepParent
           src-tauri/target/release/bundle/macos/Clodx.app
           src-tauri/target/release/bundle/macos/Clodx-macos-arm64.app.zip
+      - name: Create Intel macOS disk image
+        if: matrix.archive_dmg
+        run: >-
+          hdiutil create -volname Clodx -srcfolder
+          src-tauri/target/release/bundle/macos/Clodx.app
+          -ov -format UDZO
+          src-tauri/target/release/bundle/macos/Clodx-macos-x64.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
