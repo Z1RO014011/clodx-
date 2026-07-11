@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "package:mac": "npm run build && npm run tauri build -- --bundles app && node scripts/package-local.mjs mac",
+    "package:win": "npm run build && npm run tauri build -- --bundles msi,nsis && node scripts/package-local.mjs win"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
