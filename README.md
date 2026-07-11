@@ -42,7 +42,7 @@ Unsigned local builds are suitable for development. Public macOS releases requir
 
 Push a version tag such as `v0.1.0`, or run **Build installers** manually from the repository's Actions page. The workflow produces unsigned artifacts for download:
 
-- `clodx-macos-arm64`: macOS DMG for Apple Silicon
+- `clodx-macos-x64`: macOS DMG for Intel Macs (also runs on Apple Silicon through Rosetta)
 - `clodx-windows`: Windows MSI and NSIS installers
 
 ## License
