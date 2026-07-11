@@ -6,6 +6,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   package:
     name: ${{ matrix.name }} installer
@@ -48,3 +51,26 @@ jobs:
           name: ${{ matrix.artifact }}
           path: src-tauri/target/release/bundle/**
           if-no-files-found: error
+
+  release:
+    name: Publish release assets
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Create release and attach installers
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Clodx ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            release-assets/**/*.dmg
+            release-assets/**/*.zip
+            release-assets/**/*.msi
+            release-assets/**/*.exe
+          fail_on_unmatched_files: true
