@@ -1,16 +1,43 @@
 # Clodx
 
-Clodx is a local-first macOS/Windows tray widget for displaying Codex quota windows, reset times, and currently available reset credits.
+Clodx is a local-first desktop monitor for Codex usage limits. It runs on macOS and Windows, keeping the current quota visible in a compact blue-and-white terminal-style status widget.
 
-It reads the existing local Codex Desktop login state only in memory. It does not store tokens, log raw quota responses, redeem reset credits, or modify account settings. The usage endpoint is not a published public API and may change; Clodx reports unavailable data rather than estimating values.
+## What it shows
 
-## Development
+- 5-hour quota remaining and reset time
+- Weekly quota remaining and reset time
+- Currently available rate-limit reset credits
+- A compact `5H / WK` desktop status widget; click it to open the detailed panel
+
+## Privacy and safety
+
+Clodx reads the existing Codex Desktop sign-in state from your machine and uses it only in memory to request quota data from OpenAI endpoints. It never stores access tokens, account IDs, prompts, chat history, or raw quota responses. It does not redeem reset credits or change account settings.
+
+> The quota endpoint is not a published public API. If it changes, Clodx reports unavailable data rather than guessing a value.
+
+## Run locally
+
+Requirements: Node.js 20+, Rust stable, and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```sh
 npm install
-npm test
-npm run build
+npm run dev -- --host 127.0.0.1
+# in a second terminal
 npm run tauri dev
 ```
 
-Production distribution requires macOS signing/notarization and Windows code signing. Local bundles are unsigned.
+## Checks
+
+```sh
+npm test
+npm run build
+cd src-tauri && cargo test && cargo check
+```
+
+## Distribution
+
+Unsigned local builds are suitable for development. Public macOS releases require signing and notarization; public Windows releases require code signing to avoid SmartScreen warnings.
+
+## License
+
+This project is currently provided without a license. Add a license before accepting outside contributions or distributing source code for reuse.
