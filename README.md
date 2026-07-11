@@ -38,6 +38,13 @@ cd src-tauri && cargo test && cargo check
 
 Unsigned local builds are suitable for development. Public macOS releases require signing and notarization; public Windows releases require code signing to avoid SmartScreen warnings.
 
+### Build installers on GitHub
+
+Push a version tag such as `v0.1.0`, or run **Build installers** manually from the repository's Actions page. The workflow produces unsigned artifacts for download:
+
+- `clodx-macos-arm64`: macOS DMG for Apple Silicon
+- `clodx-windows`: Windows MSI and NSIS installers
+
 ## License
 
 This project is currently provided without a license. Add a license before accepting outside contributions or distributing source code for reuse.
