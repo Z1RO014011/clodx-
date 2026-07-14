@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import App, { StatusDock, type ProviderSnapshot } from './App';
 
@@ -22,5 +22,13 @@ describe('Clodx widget', () => {
     render(<StatusDock snapshot={snapshot} onOpen={() => undefined} />);
     expect(screen.getByText('5H 73.4%')).toBeInTheDocument();
     expect(screen.getByText('WK 48%')).toBeInTheDocument();
+  });
+
+  it('hides the five-hour card when Codex only returns weekly usage', () => {
+    const view = render(<App initialSnapshot={{ ...snapshot, shortWindow: undefined }} />);
+    const scope = within(view.container);
+    expect(scope.queryByText('5 小时额度')).not.toBeInTheDocument();
+    expect(scope.getByText('周额度')).toBeInTheDocument();
+    expect(scope.getByText('可用重置次数：2')).toBeInTheDocument();
   });
 });
