@@ -19,7 +19,7 @@ function Window({ label, code, value }: { label: string; code: string; value?: U
 export default function App({ initialSnapshot }: Props) {
   const [snapshot, setSnapshot] = useState<ProviderSnapshot | undefined>(initialSnapshot);
   const [loading, setLoading] = useState(!initialSnapshot);
-  const refresh = async () => { setLoading(true); try { const values = await invoke<ProviderSnapshot[]>('refresh_snapshots'); const next = values[0]; setSnapshot(next); await invoke('set_tray_quota', { percent: next?.shortWindow?.remainingPercent }); } catch { setSnapshot({ provider: 'codex', displayName: 'CODEX', resetCreditExpiresAt: [], updatedAt: new Date().toISOString(), status: 'unavailable', message: 'Could not refresh quota.' }); } finally { setLoading(false); } };
+  const refresh = async () => { setLoading(true); try { const values = await invoke<ProviderSnapshot[]>('refresh_snapshots'); const next = values[0]; setSnapshot(next); await invoke('set_tray_quota', { shortPercent: next?.shortWindow?.remainingPercent, weeklyPercent: next?.weeklyWindow?.remainingPercent }); } catch { setSnapshot({ provider: 'codex', displayName: 'CODEX', resetCreditExpiresAt: [], updatedAt: new Date().toISOString(), status: 'unavailable', message: 'Could not refresh quota.' }); } finally { setLoading(false); } };
   useEffect(() => { if (!initialSnapshot) void refresh(); }, []);
   if (window.location.hash === '#status') return <StatusDock snapshot={snapshot} onOpen={() => { void invoke('show_main_window'); }} />;
   if (loading && !snapshot) return <main className="widget" aria-busy="true"><p className="eyebrow">CLODX / CONNECTING</p><h1>正在读取额度…</h1></main>;

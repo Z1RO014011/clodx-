@@ -31,4 +31,11 @@ describe('Clodx widget', () => {
     expect(scope.getByText('周额度')).toBeInTheDocument();
     expect(scope.getByText('可用重置次数：2')).toBeInTheDocument();
   });
+
+  it('shows only weekly quota in the status dock when five-hour usage is unavailable', () => {
+    const dock = render(<StatusDock snapshot={{ ...snapshot, shortWindow: undefined }} onOpen={() => undefined} />);
+    const scope = within(dock.container);
+    expect(scope.getByText('WK 48%')).toBeInTheDocument();
+    expect(scope.queryByText(/5H/)).not.toBeInTheDocument();
+  });
 });
