@@ -24,6 +24,10 @@ The provider uses non-public quota-service responses; their format can change. T
 
 One codebase produces a macOS Universal application and a Windows executable/installer. Local development may use unsigned builds. Public distribution requires Apple signing/notarization and Windows code signing.
 
+## Status-bar entry
+
+Clodx keeps a native menu-bar/system-tray entry. It initially shows `C --`, then uses the current 5-hour quota as `C 73%`. macOS displays this text in the menu bar where supported; Windows exposes the same value through the tray tooltip. Clicking the entry toggles and focuses the widget window. The tray menu supplies Show/Hide, Refresh now, and Quit.
+
 ## Scope boundary
 
 The first release supports Codex only. “Reset count” means the number of currently available rate-limit reset credits, not a lifetime count of reset actions. Claude is deferred until an approved, reliable source is identified.
