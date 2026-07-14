@@ -1,6 +1,7 @@
 .worktrees/
 node_modules/
 dist/
+release/
 src-tauri/target/
 .env
 .env.*
