@@ -31,7 +31,13 @@ fn parse_window(value: Option<&Value>) -> Option<UsageWindow> {
     Some(UsageWindow { remaining_percent: (if key_is_ratio { remaining * 100.0 } else { remaining }).clamp(0.0, 100.0), resets_at: timestamp(value, &["reset_at", "resetAt", "resets_at", "resetsAt", "reset_time", "resetTime"]), window_seconds: integer(value, &["limit_window_seconds", "limitWindowSeconds", "window_seconds", "windowSeconds", "duration_seconds", "durationSeconds", "period_seconds", "periodSeconds"]).unwrap_or(0) })
 }
 fn find_window<'a>(limit: &'a Value, names: &[&str], seconds: u64) -> Option<&'a Value> {
-    for name in names { if limit.get(*name).and_then(|item| parse_window(Some(item))).is_some() { return limit.get(*name); } }
+    for name in names {
+        if let Some(window) = limit.get(*name).and_then(|item| parse_window(Some(item))) {
+            if window.window_seconds == 0 || window.window_seconds.abs_diff(seconds) <= 60 {
+                return limit.get(*name);
+            }
+        }
+    }
     for key in ["windows", "limit_windows", "limitWindows", "limits", "buckets"] { for item in limit.get(key).and_then(Value::as_array).into_iter().flatten() { if let Some(window) = parse_window(Some(item)) { if window.window_seconds.abs_diff(seconds) <= 60 { return Some(item); } } } }
     None
 }
@@ -51,6 +57,26 @@ fn headers(auth: &Auth) -> Result<HeaderMap, &'static str> {
     let mut output = HeaderMap::new(); let mut bearer = HeaderValue::from_str(&format!("Bearer {}", auth.access_token)).map_err(|_| "Codex login data is invalid.")?; bearer.set_sensitive(true); output.insert(AUTHORIZATION, bearer); output.insert(ACCEPT, HeaderValue::from_static("application/json")); output.insert("originator", HeaderValue::from_static("Codex Desktop")); output.insert("OAI-Product-Sku", HeaderValue::from_static("CODEX")); if let Some(account_id) = &auth.account_id { let mut value = HeaderValue::from_str(account_id).map_err(|_| "Account identifier is invalid.")?; value.set_sensitive(true); output.insert("ChatGPT-Account-Id", value); } Ok(output)
 }
 async fn limited_json(mut response: reqwest::Response) -> Result<Value, ()> { if response.content_length().is_some_and(|length| length > MAX_RESPONSE_BYTES) { return Err(()); } let mut bytes = Vec::new(); while let Some(chunk) = response.chunk().await.map_err(|_| ())? { if bytes.len() + chunk.len() > MAX_RESPONSE_BYTES as usize { return Err(()); } bytes.extend_from_slice(&chunk); } serde_json::from_slice(&bytes).map_err(|_| ()) }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn does_not_treat_a_weekly_primary_window_as_a_five_hour_window() {
+        let limit = serde_json::json!({
+            "primary_window": {
+                "used_percent": 3,
+                "limit_window_seconds": 604800,
+                "reset_at": 1784666520
+            }
+        });
+
+        assert!(find_window(&limit, &["primary_window"], 18_000).is_none());
+        assert!(find_window(&limit, &["primary_window"], 604_800).is_some());
+    }
+}
+
 pub async fn fetch_snapshot(client: &reqwest::Client) -> ProviderSnapshot {
     let auth = match load_auth() { Ok(auth) => auth, Err(message) => return ProviderSnapshot::failure("signed_out", message) };
     let headers = match headers(&auth) { Ok(headers) => headers, Err(message) => return ProviderSnapshot::failure("signed_out", message) };
@@ -59,8 +85,8 @@ pub async fn fetch_snapshot(client: &reqwest::Client) -> ProviderSnapshot {
     let usage = match limited_json(usage_response).await { Ok(value) => value, Err(_) => return ProviderSnapshot::failure("unavailable", "Quota response format has changed.") };
     let limit = usage.get("rate_limit").or_else(|| usage.get("rateLimit")).unwrap_or(&usage);
     let short_window = parse_window(find_window(limit, &["primary_window", "primaryWindow", "short_window", "shortWindow", "five_hour_window", "fiveHourWindow"], 18_000));
-    if short_window.is_none() { return ProviderSnapshot::failure("unavailable", "Quota response is missing the 5h window."); }
+    let weekly_window = parse_window(find_window(limit, &["secondary_window", "secondaryWindow", "weekly_window", "weeklyWindow", "primary_window", "primaryWindow"], 604_800));
     let usage_credits = usage.get("rate_limit_reset_credits").or_else(|| usage.get("rateLimitResetCredits")).and_then(reset_credit_count_for_test);
     let reset_credits = match credits_result { Ok(response) if response.status().is_success() => limited_json(response).await.ok().and_then(|value| reset_credit_count_for_test(&value)).or(usage_credits), _ => usage_credits };
-    ProviderSnapshot { provider: "codex".into(), display_name: "CODEX".into(), plan: pick_string(&usage, &["plan_type", "planType"]).map(|value| value.to_uppercase()), short_window, weekly_window: parse_window(find_window(limit, &["secondary_window", "secondaryWindow", "weekly_window", "weeklyWindow"], 604_800)), reset_credits, reset_credit_expires_at: vec![], updated_at: chrono::Utc::now().to_rfc3339(), status: "ok".into(), message: None }
+    ProviderSnapshot { provider: "codex".into(), display_name: "CODEX".into(), plan: pick_string(&usage, &["plan_type", "planType"]).map(|value| value.to_uppercase()), short_window, weekly_window, reset_credits, reset_credit_expires_at: vec![], updated_at: chrono::Utc::now().to_rfc3339(), status: "ok".into(), message: None }
 }
