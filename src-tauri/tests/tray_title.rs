@@ -1,8 +1,8 @@
 use clodx_lib::format_tray_title;
 
 #[test]
-fn formats_primary_quota_for_the_status_bar() {
-    assert_eq!(format_tray_title(Some(73.4)), "C 73%");
-    assert_eq!(format_tray_title(Some(9.8)), "C 10%");
-    assert_eq!(format_tray_title(None), "C --");
+fn prefers_five_hour_quota_and_falls_back_to_weekly_quota() {
+    assert_eq!(format_tray_title(Some(73.4), Some(97.0)), "5H 73%");
+    assert_eq!(format_tray_title(None, Some(97.0)), "WK 97%");
+    assert_eq!(format_tray_title(None, None), "C --");
 }

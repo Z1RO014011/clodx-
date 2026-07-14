@@ -6,8 +6,14 @@ use std::{sync::Mutex, time::{Duration, Instant}};
 use models::ProviderSnapshot;
 use tauri::{menu::{Menu, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, AppHandle, Emitter, Manager, State};
 
-pub fn format_tray_title(percent: Option<f64>) -> String {
-    percent.map(|value| format!("C {:.0}%", value.clamp(0.0, 100.0))).unwrap_or_else(|| "C --".into())
+pub fn format_tray_title(short_percent: Option<f64>, weekly_percent: Option<f64>) -> String {
+    if let Some(value) = short_percent {
+        return format!("5H {:.0}%", value.clamp(0.0, 100.0));
+    }
+    if let Some(value) = weekly_percent {
+        return format!("WK {:.0}%", value.clamp(0.0, 100.0));
+    }
+    "C --".into()
 }
 
 struct AppState { client: reqwest::Client, cache: Mutex<Option<(Instant, Vec<ProviderSnapshot>)>>, refresh: tokio::sync::Mutex<()> }
@@ -20,8 +26,8 @@ async fn get_snapshots(state: State<'_, AppState>) -> Result<Vec<ProviderSnapsho
 async fn refresh_snapshots(state: State<'_, AppState>) -> Result<Vec<ProviderSnapshot>, String> { refresh(state).await }
 async fn refresh(state: State<'_, AppState>) -> Result<Vec<ProviderSnapshot>, String> { let _guard = state.refresh.lock().await; let value = vec![codex::fetch_snapshot(&state.client).await]; if let Ok(mut cache) = state.cache.lock() { *cache = Some((Instant::now(), value.clone())); } Ok(value) }
 #[tauri::command]
-fn set_tray_quota(percent: Option<f64>, app: AppHandle) -> Result<(), String> {
-    let title = format_tray_title(percent);
+fn set_tray_quota(short_percent: Option<f64>, weekly_percent: Option<f64>, app: AppHandle) -> Result<(), String> {
+    let title = format_tray_title(short_percent, weekly_percent);
     let tray = app.tray_by_id("status").ok_or("status tray unavailable")?;
     tray.set_title(Some(title.clone())).map_err(|error| error.to_string())?;
     tray.set_tooltip(Some(title)).map_err(|error| error.to_string())
